@@ -57,7 +57,7 @@ shopdjango/
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/shopdjango.git
+git clone https://github.com/rkaya21/shopdjango.git
 cd shopdjango
 ```
 

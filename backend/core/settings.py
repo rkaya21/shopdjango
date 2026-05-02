@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     'users',
     'products',
     'orders',
+    'payments',
+    'promotions',
 ]
 
 MIDDLEWARE = [
@@ -128,6 +130,12 @@ CORS_ALLOW_CREDENTIALS = True   # Cookie tabanlı auth için zorunlu
 # ---------------------------------------------------------------------------
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://redis:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+
+# ---------------------------------------------------------------------------
+# E-posta (deploy edilmeyecek — console'a yazar)
+# ---------------------------------------------------------------------------
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'ShopDjango <noreply@shopdjango.com>'
 
 # ---------------------------------------------------------------------------
 # Şifre doğrulama

@@ -42,11 +42,40 @@ export const getProductBySlug = (slug) => api.get(`/api/products/${slug}/`)
 export const getCart = () => api.get('/api/orders/cart/')
 export const addToCart = (productId, quantity = 1) =>
   api.post('/api/orders/cart/add/', { product_id: productId, quantity })
+export const updateCartItem = (itemId, quantity) =>
+  api.patch(`/api/orders/cart/update/${itemId}/`, { quantity })
 export const removeFromCart = (itemId) => api.delete(`/api/orders/cart/remove/${itemId}/`)
 
 // Orders
 export const getOrders = () => api.get('/api/orders/')
 export const createOrder = (shippingAddress) =>
   api.post('/api/orders/create/', { shipping_address: shippingAddress })
+
+// Payments
+export const initiatePayment = (data) => api.post('/api/payments/initiate/', data)
+export const getPayments = () => api.get('/api/payments/history/')
+
+// Addresses
+export const getAddresses = () => api.get('/api/auth/addresses/')
+export const createAddress = (data) => api.post('/api/auth/addresses/', data)
+export const updateAddress = (id, data) => api.put(`/api/auth/addresses/${id}/`, data)
+export const deleteAddress = (id) => api.delete(`/api/auth/addresses/${id}/`)
+
+// Password
+export const changePassword = (data) => api.post('/api/auth/password/change/', data)
+export const requestPasswordReset = (email) => api.post('/api/auth/password/reset/', { email })
+export const confirmPasswordReset = (data) => api.post('/api/auth/password/reset/confirm/', data)
+
+// Reviews
+export const getReviews = (slug) => api.get(`/api/products/${slug}/reviews/`)
+export const createReview = (slug, data) => api.post(`/api/products/${slug}/reviews/create/`, data)
+
+// Wishlist
+export const getWishlist = () => api.get('/api/products/wishlist/')
+export const toggleWishlist = (productId) => api.post(`/api/products/wishlist/${productId}/toggle/`)
+
+// Promotions
+export const applyCoupon = (code) => api.post('/api/promotions/apply/', { code })
+export const removeCoupon = () => api.post('/api/promotions/remove/')
 
 export default api

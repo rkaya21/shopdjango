@@ -184,7 +184,3 @@ docker compose exec backend python manage.py createsuperuser
 | Container | Docker, Docker Compose |
 
 ---
-
-## Lisans
-
-Bu proje MIT lisansı ile lisanslanmıştır.

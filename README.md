@@ -2,7 +2,7 @@
 
 Sıfırdan, deploy edilmeden, tamamen öğrenme ve portfolyo amaçlı geliştirdiğim full-stack bir e-ticaret projesidir. Backend'de Django REST Framework, frontend'de React kullandım. Tüm servisler Docker üzerinde çalışıyor.
 
-Amacım; gerçek bir e-ticaret sitesinin arkasındaki mimariyi en ince detayına kadar anlamak ve production-ready kod yazabildiğimi göstermekti.
+Amacım; gerçek bir e-ticaret sitesinin arkasındaki mimariyi en ince detayına kadar anlamak ve production-ready kod yazabildiğimi görmek..
 
 ---
 

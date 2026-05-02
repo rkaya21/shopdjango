@@ -1,135 +1,190 @@
-# ShopDjango 🛒
+# ShopDjango — Full-Stack E-Ticaret Platformu
 
-A full-stack e-commerce platform built with Django REST Framework and React, containerized with Docker.
+Sıfırdan, deploy edilmeden, tamamen öğrenme ve portfolyo amaçlı geliştirdiğim full-stack bir e-ticaret projesidir. Backend'de Django REST Framework, frontend'de React kullandım. Tüm servisler Docker üzerinde çalışıyor.
 
-## Tech Stack
+Amacım; gerçek bir e-ticaret sitesinin arkasındaki mimariyi en ince detayına kadar anlamak ve production-ready kod yazabildiğimi göstermekti.
 
-**Backend**
-- Django 6 + Django REST Framework
-- PostgreSQL
-- Celery + Redis (async tasks & background jobs)
-- JWT Authentication
+---
 
-**Frontend**
-- React
-- Tailwind CSS
+## Ne Yapıyor?
 
-**DevOps**
-- Docker & Docker Compose
+Kısaca: Bir kullanıcı kayıt olur, ürünleri görür, sepete ekler, adresini girer, ödeme yapar, siparişini takip eder. Admin panelden ürün/sipariş/stok yönetimi yapılır.
 
-## Features
+### Kullanıcı Tarafı
+- Kayıt, giriş, çıkış (JWT — HttpOnly Cookie ile güvenli)
+- Şifremi unuttum / şifre sıfırlama (token bazlı, e-posta ile)
+- Profil görüntüleme ve güncelleme
+- Ürün listeleme, arama, kategoriye göre filtreleme
+- Ürün detay sayfası
+- Ürün değerlendirme (1-5 yıldız + yorum)
+- Favoriler / istek listesi
+- Sepet yönetimi (ekle, çıkar, adet güncelle)
+- Stok kontrolü (sepete eklerken ve sipariş oluştururken)
+- Çoklu adres kaydetme (ev, iş, vb.)
+- Checkout akışı (adres → ödeme yöntemi seçimi → ödeme)
+- 3 ödeme yöntemi: Kredi kartı, Havale/EFT, Kapıda ödeme
+- Kupon / indirim kodu uygulama
+- Sipariş geçmişi ve durum takibi
 
-- User registration & login with JWT
-- Product listing, detail pages & category filtering
-- Shopping cart management
-- Order placement & order history
-- Async email notifications via Celery
-- Admin panel for full content management
+### Admin Tarafı
+- Django admin paneli
+- Ürün, kategori, sipariş, ödeme, kupon, yorum yönetimi
+- Yorum onay mekanizması
+- Stok takibi
 
-## Project Structure
+---
+
+## Teknik Yapı
+
+### Backend
+- **Django 5** + **Django REST Framework**
+- **PostgreSQL** veritabanı
+- **JWT Authentication** (HttpOnly Cookie — XSS'e karşı güvenli)
+- **Celery + Redis** (asenkron görevler: e-posta bildirimleri)
+- Atomic transaction'lar + `select_for_update()` ile race condition önleme
+- `F()` expression ile veritabanı seviyesinde stok güncelleme
+- Rate limiting (login endpoint: 10 istek/dakika)
+- CORS + güvenlik header'ları (HSTS, XSS Protection, vb.)
+
+### Frontend
+- **React 19** + **React Router v7**
+- **Tailwind CSS v4** ile modern, responsive tasarım
+- Context API ile global state yönetimi (Auth + Cart)
+- Axios interceptor ile otomatik token yenileme
+- Glassmorphism, skeleton loading, staggered animasyonlar
+- Mobil uyumlu (responsive) tüm sayfalarda
+
+### Altyapı
+- **Docker Compose** ile tek komutla ayağa kalkar (5 servis)
+- Backend, Frontend, PostgreSQL, Redis, Celery
+
+---
+
+## Proje Yapısı
 
 ```
 shopdjango/
 ├── backend/
-│   ├── core/          # Project settings, URLs, Celery config
-│   ├── users/         # Custom user model, auth endpoints
-│   ├── products/      # Product & category models, API
-│   ├── orders/        # Cart, order models, API
-│   ├── requirements.txt
-│   └── Dockerfile
+│   ├── core/              # Django ayarları, ana URL'ler
+│   ├── users/             # Kullanıcı, adres, şifre yönetimi
+│   ├── products/          # Ürün, kategori, yorum, favoriler
+│   ├── orders/            # Sepet, sipariş, stok kontrolü
+│   ├── payments/          # Ödeme sistemi (simülasyon)
+│   └── promotions/        # Kupon / indirim sistemi
 ├── frontend/
 │   ├── src/
-│   └── Dockerfile
+│   │   ├── api/           # Axios client + tüm API fonksiyonları
+│   │   ├── components/    # Navbar, Footer, ProductCard, ProtectedRoute
+│   │   ├── context/       # AuthContext, CartContext
+│   │   └── pages/         # Tüm sayfa bileşenleri
+│   └── index.html
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## Kurulum
 
-- [Docker](https://www.docker.com/products/docker-desktop)
-- [Docker Compose](https://docs.docker.com/compose/)
+### Gereksinimler
+- [Docker](https://docs.docker.com/get-docker/) ve Docker Compose
 
-### Installation
-
-1. **Clone the repository**
+### Adımlar
 
 ```bash
+# 1. Klonla
 git clone https://github.com/rkaya21/shopdjango.git
 cd shopdjango
-```
 
-2. **Set up environment variables**
-
-```bash
+# 2. Ortam değişkenlerini ayarla
 cp .env.example .env
+# .env dosyasını aç ve SECRET_KEY ile POSTGRES_PASSWORD'u değiştir
+
+# 3. Başlat
+docker compose up --build -d
+
+# 4. Veritabanını oluştur
+docker compose exec backend python manage.py migrate
+
+# 5. Admin kullanıcı oluştur
+docker compose exec backend python manage.py createsuperuser
 ```
 
-Edit `.env` with your own values.
+### Erişim
 
-3. **Build and run containers**
+| Servis | URL |
+|--------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000/api/ |
+| Admin Panel | http://localhost:8000/admin/ |
 
-```bash
-docker-compose up --build
-```
+---
 
-4. **Apply migrations**
-
-```bash
-docker-compose exec backend python manage.py migrate
-```
-
-5. **Create a superuser**
-
-```bash
-docker-compose exec backend python manage.py createsuperuser
-```
-
-6. **Access the app**
-
-| Service       | URL                          |
-|---------------|------------------------------|
-| Backend API   | http://localhost:8000/api/   |
-| Admin Panel   | http://localhost:8000/admin/ |
-| Frontend      | http://localhost:3000/       |
-
-## API Endpoints
+## API Endpoint'leri
 
 ### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register/` | Register a new user |
-| POST | `/api/auth/login/` | Login & get JWT tokens |
-| POST | `/api/auth/token/refresh/` | Refresh access token |
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/auth/register/` | Kayıt ol |
+| POST | `/api/auth/login/` | Giriş yap |
+| POST | `/api/auth/logout/` | Çıkış yap |
+| GET/PUT | `/api/auth/profile/` | Profil |
+| GET/POST | `/api/auth/addresses/` | Adres listesi / ekle |
+| POST | `/api/auth/password/change/` | Şifre değiştir |
+| POST | `/api/auth/password/reset/` | Şifre sıfırlama linki |
 
-### Products
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products/` | List all products |
-| GET | `/api/products/<slug>/` | Product detail |
-| GET | `/api/categories/` | List all categories |
+### Ürünler
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/api/products/` | Ürün listesi (arama, filtre, sıralama) |
+| GET | `/api/products/categories/` | Kategoriler |
+| GET | `/api/products/<slug>/` | Ürün detay |
+| GET | `/api/products/<slug>/reviews/` | Yorumlar |
+| POST | `/api/products/<slug>/reviews/create/` | Yorum yaz |
+| GET | `/api/products/wishlist/` | Favorilerim |
+| POST | `/api/products/wishlist/<id>/toggle/` | Favorilere ekle/çıkar |
 
-### Cart & Orders
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/cart/` | Get current user's cart |
-| POST | `/api/cart/add/` | Add item to cart |
-| DELETE | `/api/cart/remove/<id>/` | Remove item from cart |
-| GET | `/api/orders/` | List user's orders |
-| POST | `/api/orders/create/` | Place an order |
+### Sepet & Sipariş
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| GET | `/api/orders/cart/` | Sepeti görüntüle |
+| POST | `/api/orders/cart/add/` | Sepete ekle |
+| PATCH | `/api/orders/cart/update/<id>/` | Adet güncelle |
+| DELETE | `/api/orders/cart/remove/<id>/` | Sepetten çıkar |
+| POST | `/api/orders/create/` | Sipariş oluştur |
+| GET | `/api/orders/` | Sipariş geçmişi |
 
-## Environment Variables
+### Ödeme & Kupon
+| Method | Endpoint | Açıklama |
+|--------|----------|----------|
+| POST | `/api/payments/initiate/` | Ödeme başlat |
+| GET | `/api/payments/history/` | Ödeme geçmişi |
+| POST | `/api/promotions/apply/` | Kupon uygula |
 
-See `.env.example` for all required variables:
+---
 
-```env
-POSTGRES_DB=shopdjango
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password_here
-```
+## Notlar
 
-## Contributing
+- **Ödeme sistemi simülasyondur.** Gerçek para transferi yapmaz. Kredi kartı bilgileri kaydedilmez ve herhangi bir ödeme sağlayıcısına iletilmez. Production'a çıkılacaksa Stripe veya Iyzico entegrasyonu yapılmalıdır.
+- **E-postalar console'a yazılır.** Deploy edilmeyeceği için `EMAIL_BACKEND = console` kullanılmıştır. `docker compose logs backend` ile görülebilir.
+- **Stok kontrolü atomic'tir.** Aynı anda iki kişi son ürünü almaya çalışırsa `select_for_update()` ile sadece biri başarılı olur.
 
-Pull requests are welcome. For major changes, please open an issue first.
+---
+
+## Kullanılan Teknolojiler
+
+| Katman | Teknoloji |
+|--------|-----------|
+| Backend | Python, Django 5, Django REST Framework |
+| Frontend | React 19, Tailwind CSS v4, Axios |
+| Veritabanı | PostgreSQL |
+| Cache / Queue | Redis, Celery |
+| Auth | JWT (SimpleJWT), HttpOnly Cookie |
+| Container | Docker, Docker Compose |
+
+---
+
+## Lisans
+
+Bu proje MIT lisansı ile lisanslanmıştır.

@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 from users.models import User
 from products.models import Product
 
@@ -39,14 +40,20 @@ class OrderItem(models.Model):
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='cart')
+    coupon = models.ForeignKey('promotions.Coupon', on_delete=models.SET_NULL, null=True, blank=True, related_name='carts')
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.user.email} sepeti'
 
     @property
-    def total(self):
+    def subtotal(self):
         return sum(item.subtotal for item in self.cart_items.all())
+
+    @property
+    def total(self):
+        return max(self.subtotal - self.discount_amount, Decimal('0.00'))
 
 
 class CartItem(models.Model):

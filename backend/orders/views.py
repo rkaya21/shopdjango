@@ -6,13 +6,26 @@ from django.db.models import F
 from .models import Order, OrderItem, Cart, CartItem
 from .serializers import CartSerializer, CartItemSerializer, OrderSerializer
 from products.models import Product
+from promotions.models import CouponUsage
+from promotions.services import apply_coupon_to_cart, clear_cart_coupon, validate_coupon_for_cart
+
+
+def refresh_cart_coupon(cart, user):
+    if not cart.coupon:
+        return cart
+
+    error = validate_coupon_for_cart(cart.coupon, user, cart)
+    if error:
+        return clear_cart_coupon(cart)
+    return apply_coupon_to_cart(cart, cart.coupon)
 
 
 class CartView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart, _ = Cart.objects.select_related('coupon').get_or_create(user=request.user)
+        refresh_cart_coupon(cart, request.user)
         serializer = CartSerializer(cart)
         return Response(serializer.data)
 
@@ -53,6 +66,7 @@ class CartAddView(APIView):
         else:
             CartItem.objects.create(cart=cart, product=product, quantity=quantity)
 
+        refresh_cart_coupon(cart, request.user)
         return Response(CartSerializer(cart).data)
 
 
@@ -80,6 +94,7 @@ class CartUpdateView(APIView):
 
         item.quantity = quantity
         item.save()
+        refresh_cart_coupon(item.cart, request.user)
         return Response(CartSerializer(item.cart).data)
 
 
@@ -89,7 +104,9 @@ class CartRemoveView(APIView):
     def delete(self, request, item_id):
         try:
             item = CartItem.objects.get(id=item_id, cart__user=request.user)
+            cart = item.cart
             item.delete()
+            refresh_cart_coupon(cart, request.user)
             return Response({'message': 'Ürün sepetten kaldırıldı.'})
         except CartItem.DoesNotExist:
             return Response({'error': 'Ürün bulunamadı.'}, status=404)
@@ -122,6 +139,8 @@ class OrderCreateView(APIView):
 
         # Atomic transaction — stok düşürme ve sipariş oluşturma tek blokta
         with transaction.atomic():
+            cart = Cart.objects.select_for_update().select_related('coupon').get(id=cart.id)
+
             # select_for_update ile race condition önleme
             product_ids = [item.product_id for item in cart_items]
             products = {
@@ -142,6 +161,13 @@ class OrderCreateView(APIView):
                         {'error': f'"{product.name}" için yetersiz stok. Mevcut: {product.stock}, istenen: {item.quantity}.'},
                         status=400,
                     )
+
+            if cart.coupon:
+                error = validate_coupon_for_cart(cart.coupon, request.user, cart)
+                if error:
+                    clear_cart_coupon(cart)
+                    return Response({'error': error}, status=400)
+                apply_coupon_to_cart(cart, cart.coupon)
 
             # Sipariş oluştur
             order = Order.objects.create(
@@ -164,7 +190,12 @@ class OrderCreateView(APIView):
                     stock=F('stock') - item.quantity
                 )
 
+            if cart.coupon:
+                CouponUsage.objects.create(coupon=cart.coupon, user=request.user, order=order)
+                type(cart.coupon).objects.filter(id=cart.coupon_id).update(used_count=F('used_count') + 1)
+
             # Sepeti temizle
             cart_items.delete()
+            clear_cart_coupon(cart)
 
         return Response(OrderSerializer(order).data, status=201)

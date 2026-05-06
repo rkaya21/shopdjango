@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { createOrder, initiatePayment } from '../api/client'
+import { applyCoupon, createOrder, initiatePayment, removeCoupon } from '../api/client'
 import { useCart } from '../context/CartContext'
 
 const METHODS = [
@@ -18,11 +18,45 @@ export default function CheckoutPage() {
   const [card, setCard] = useState({ number: '', expiry: '', cvv: '', holder: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
 
   useEffect(() => { if (!cart || cart.cart_items?.length === 0) navigate('/cart') }, [cart, navigate])
 
   const fmtCard = (v) => v.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').slice(0, 19)
   const fmtExp = (v) => { const d = v.replace(/\D/g, '').slice(0, 4); return d.length > 2 ? `${d.slice(0,2)}/${d.slice(2)}` : d }
+
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault()
+    if (!couponCode.trim()) {
+      setCouponError('Kupon kodu girin.')
+      return
+    }
+
+    setCouponLoading(true); setCouponError('')
+    try {
+      await applyCoupon(couponCode)
+      setCouponCode('')
+      await fetchCart()
+    } catch (err) {
+      setCouponError(err.response?.data?.error ?? 'Kupon uygulanamadı.')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const handleRemoveCoupon = async () => {
+    setCouponLoading(true); setCouponError('')
+    try {
+      await removeCoupon()
+      await fetchCart()
+    } catch (err) {
+      setCouponError(err.response?.data?.error ?? 'Kupon kaldırılamadı.')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -158,6 +192,43 @@ export default function CheckoutPage() {
                   <span className="text-sm font-semibold text-surface-900 tabular-nums ml-3">{Number(item.subtotal).toLocaleString('tr-TR',{style:'currency',currency:'TRY'})}</span>
                 </div>
               ))}
+            </div>
+            <form onSubmit={handleApplyCoupon} className="mt-5 pt-5 border-t border-surface-100">
+              <label className="block text-sm font-medium text-surface-700 mb-2">Kupon Kodu</label>
+              <div className="flex gap-2">
+                <input
+                  value={couponCode}
+                  onChange={e=>setCouponCode(e.target.value.toUpperCase())}
+                  disabled={couponLoading || !!cart.coupon}
+                  placeholder="KOD"
+                  className={inputCls+' uppercase'}
+                />
+                {cart.coupon ? (
+                  <button type="button" onClick={handleRemoveCoupon} disabled={couponLoading}
+                    className="px-4 rounded-xl text-sm font-semibold bg-surface-100 text-surface-700 hover:bg-surface-200 disabled:opacity-60 transition-colors">
+                    Kaldır
+                  </button>
+                ) : (
+                  <button type="submit" disabled={couponLoading}
+                    className="px-4 rounded-xl text-sm font-semibold bg-surface-900 text-white hover:bg-surface-800 disabled:opacity-60 transition-colors">
+                    Uygula
+                  </button>
+                )}
+              </div>
+              {cart.coupon&&<p className="mt-2 text-xs text-emerald-600">{cart.coupon.code} kuponu uygulandı.</p>}
+              {couponError&&<p className="mt-2 text-xs text-red-600">{couponError}</p>}
+            </form>
+            <div className="mt-5 space-y-3 text-sm">
+              <div className="flex justify-between text-surface-500">
+                <span>Ara Toplam</span>
+                <span className="text-surface-700 font-medium tabular-nums">{Number(cart.subtotal ?? cart.total).toLocaleString('tr-TR',{style:'currency',currency:'TRY'})}</span>
+              </div>
+              {Number(cart.discount_amount)>0&&(
+                <div className="flex justify-between text-emerald-600">
+                  <span>İndirim</span>
+                  <span className="font-medium tabular-nums">-{Number(cart.discount_amount).toLocaleString('tr-TR',{style:'currency',currency:'TRY'})}</span>
+                </div>
+              )}
             </div>
             <div className="mt-5 flex justify-between text-sm text-surface-500"><span>Kargo</span><span className="text-emerald-600 font-medium">Ücretsiz</span></div>
             <div className="mt-4 pt-4 border-t border-surface-100 flex justify-between"><span className="font-bold text-surface-900">Toplam</span>

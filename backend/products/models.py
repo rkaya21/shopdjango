@@ -46,6 +46,27 @@ class Product(models.Model):
         return self.reviews.filter(is_approved=True).count()
 
 
+class StockMovement(models.Model):
+    REASON_CHOICES = [
+        ('order_created', 'Sipariş oluşturuldu'),
+        ('order_cancelled', 'Sipariş iptal edildi'),
+        ('admin_adjustment', 'Admin stok düzenlemesi'),
+        ('initial_stock', 'İlk stok girişi'),
+    ]
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_movements')
+    quantity_change = models.IntegerField()
+    reason = models.CharField(max_length=50, choices=REASON_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        sign = '+' if self.quantity_change > 0 else ''
+        return f'{self.product.name}: {sign}{self.quantity_change} ({self.get_reason_display()})'
+
+
 class Review(models.Model):
     """Ürün değerlendirmesi — kullanıcı başına 1 yorum."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')

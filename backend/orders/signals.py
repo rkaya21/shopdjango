@@ -1,8 +1,7 @@
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from django.db.models import F
 from .models import Order
-from products.models import Product
+from products.services import adjust_product_stock
 
 
 @receiver(pre_save, sender=Order)
@@ -18,9 +17,7 @@ def handle_order_cancellation(sender, instance, **kwargs):
 
     if old_order.status != 'cancelled' and instance.status == 'cancelled':
         for item in instance.items.select_related('product').all():
-            Product.objects.filter(id=item.product_id).update(
-                stock=F('stock') + item.quantity
-            )
+            adjust_product_stock(item.product, item.quantity, 'order_cancelled')
 
 
 @receiver(pre_save, sender=Order)

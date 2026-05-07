@@ -6,6 +6,7 @@ from django.db.models import F
 from .models import Order, OrderItem, Cart, CartItem
 from .serializers import CartSerializer, CartItemSerializer, OrderSerializer
 from products.models import Product
+from products.services import adjust_product_stock
 from promotions.models import CouponUsage
 from promotions.services import apply_coupon_to_cart, clear_cart_coupon, validate_coupon_for_cart
 
@@ -186,9 +187,7 @@ class OrderCreateView(APIView):
                     price=product.price,
                 )
                 # Atomic stok düşürme — F() ile DB seviyesinde
-                Product.objects.filter(id=product.id).update(
-                    stock=F('stock') - item.quantity
-                )
+                adjust_product_stock(product, -item.quantity, 'order_created')
 
             if cart.coupon:
                 CouponUsage.objects.create(coupon=cart.coupon, user=request.user, order=order)

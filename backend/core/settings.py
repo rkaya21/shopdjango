@@ -136,6 +136,17 @@ CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://redis:6
 # ---------------------------------------------------------------------------
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'ShopDjango <noreply@shopdjango.com>'
+ADMINS = [
+    ('ShopDjango Admin', email.strip())
+    for email in os.environ.get('ADMIN_EMAILS', '').split(',')
+    if email.strip()
+]
+STOCK_ALERT_EMAILS = [
+    email.strip()
+    for email in os.environ.get('STOCK_ALERT_EMAILS', '').split(',')
+    if email.strip()
+]
+LOW_STOCK_THRESHOLD = int(os.environ.get('LOW_STOCK_THRESHOLD', '5'))
 
 # ---------------------------------------------------------------------------
 # Şifre doğrulama

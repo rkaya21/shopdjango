@@ -1,13 +1,18 @@
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { useWishlist } from '../context/WishlistContext'
 import { useState } from 'react'
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart()
   const { user } = useAuth()
+  const { isWishlisted, toggleWishlist } = useWishlist()
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+  const [wishlistBusy, setWishlistBusy] = useState(false)
+
+  const wishlisted = isWishlisted(product.id)
 
   const handleAddToCart = async (e) => {
     e.preventDefault()
@@ -23,6 +28,22 @@ export default function ProductCard({ product }) {
       setTimeout(() => setAdded(false), 2000)
     } finally {
       setAdding(false)
+    }
+  }
+
+  const handleToggleWishlist = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user) {
+      window.location.href = '/login'
+      return
+    }
+
+    setWishlistBusy(true)
+    try {
+      await toggleWishlist(product)
+    } finally {
+      setWishlistBusy(false)
     }
   }
 
@@ -56,6 +77,22 @@ export default function ProductCard({ product }) {
               </span>
             </div>
           )}
+
+          <button
+            onClick={handleToggleWishlist}
+            disabled={wishlistBusy}
+            className={`absolute top-3 right-3 p-2.5 rounded-xl shadow-lg transition-all duration-200 ${
+              wishlisted
+                ? 'bg-brand-600 text-white'
+                : 'bg-white/90 text-surface-600 hover:bg-white hover:text-brand-600'
+            } disabled:opacity-60`}
+            id={`product-wishlist-${product.id}`}
+            aria-label={wishlisted ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+          >
+            <svg className={`w-4.5 h-4.5 ${wishlisted ? 'fill-current' : 'fill-transparent'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+            </svg>
+          </button>
 
           {/* Quick add button */}
           {product.in_stock && (

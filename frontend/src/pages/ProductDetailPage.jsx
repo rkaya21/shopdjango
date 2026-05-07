@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { createReview, getProductBySlug, getReviews } from '../api/client'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { useWishlist } from '../context/WishlistContext'
 
 function StarRating({ value, onChange, readonly = false, size = 'w-5 h-5' }) {
   return (
@@ -42,6 +43,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addToCart } = useCart()
+  const { isWishlisted, toggleWishlist } = useWishlist()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -55,6 +57,7 @@ export default function ProductDetailPage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewError, setReviewError] = useState('')
   const [reviewSuccess, setReviewSuccess] = useState('')
+  const [wishlistBusy, setWishlistBusy] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -73,6 +76,7 @@ export default function ProductDetailPage() {
   }, [slug])
 
   const hasUserReview = Boolean(user && reviews.some((review) => review.username === user.username))
+  const wishlisted = product ? isWishlisted(product.id) : false
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -116,6 +120,20 @@ export default function ProductDetailPage() {
       setReviewError(err.response?.data?.error || 'Yorum gönderilirken bir hata oluştu.')
     } finally {
       setReviewSubmitting(false)
+    }
+  }
+
+  const handleToggleWishlist = async () => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    setWishlistBusy(true)
+    try {
+      await toggleWishlist(product)
+    } finally {
+      setWishlistBusy(false)
     }
   }
 
@@ -192,6 +210,22 @@ export default function ProductDetailPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-surface-900 mt-2 leading-tight" id="product-title">
             {product.name}
           </h1>
+
+          <button
+            onClick={handleToggleWishlist}
+            disabled={wishlistBusy}
+            className={`mt-5 inline-flex w-fit items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
+              wishlisted
+                ? 'border-brand-200 bg-brand-50 text-brand-700'
+                : 'border-surface-200 bg-white text-surface-700 hover:border-brand-200 hover:text-brand-700'
+            } disabled:opacity-60`}
+            id="product-detail-wishlist"
+          >
+            <svg className={`w-4.5 h-4.5 ${wishlisted ? 'fill-current' : 'fill-transparent'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+            </svg>
+            {wishlisted ? 'Favorilerde' : 'Favorilere Ekle'}
+          </button>
 
           <p className="text-surface-500 mt-4 leading-relaxed text-[15px]">
             {product.description}
